@@ -32,23 +32,31 @@ salesforce:
   # Correction automatique des effectifs manquants
   auto_fix_missing: true
   
-  # Mapping des tailles d'entreprise vers effectifs par défaut
+  # Mapping des tailles d'entreprise vers effectifs par défaut (seuils INSEE officiels)
   size_mapping:
     MICRO:
-      default_employees: 5
-      description: "3 à 5 salariés"
+      default_employees: 10        # Milieu de 0-19
+      min_threshold: 0
+      max_threshold: 19
+      description: "0 à 19 salariés"
       confidence: "medium"
     PME:
-      default_employees: 100
-      description: "100 à 199 salariés"
+      default_employees: 135       # Milieu de 20-249
+      min_threshold: 20
+      max_threshold: 249
+      description: "20 à 249 salariés"
       confidence: "medium"
     ETI:
-      default_employees: 1000
-      description: "1000 à 1999 salariés"
+      default_employees: 2625      # Milieu de 250-4999
+      min_threshold: 250
+      max_threshold: 4999
+      description: "250 à 4999 salariés"
       confidence: "medium"
     GE:
-      default_employees: 10000
-      description: "10000 salariés et plus"
+      default_employees: 10000     # Estimation pour 5000+
+      min_threshold: 5000
+      max_threshold: 999999
+      description: "5000 salariés et plus"
       confidence: "low"
   
   # Niveaux de confiance selon la taille des tranches
