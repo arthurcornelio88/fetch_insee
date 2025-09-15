@@ -1,0 +1,94 @@
+# Configuration INSEE Data Processor
+# Utilisé pour personnaliser le comportement du module selon vos besoins
+
+# Configuration API INSEE
+api:
+  base_url: "https://api.insee.fr/api-sirene/3.11"
+  # Délai entre requêtes (secondes) - respecter limite 30req/min
+  delay_between_requests: 4.0
+  # Nombre maximum de résultats par recherche
+  max_results: 5
+  # Timeout pour les requêtes HTTP (secondes)
+  timeout: 30
+
+# Configuration du cache
+cache:
+  # Activer le cache pour éviter requêtes dupliquées
+  enabled: true
+  # Taille maximale du cache (nombre d'entreprises)
+  max_size: 10000
+
+# Configuration traitement des doublons
+duplicates:
+  # Analyser et optimiser les doublons
+  analyze: true
+  # Afficher les statistiques détaillées
+  show_stats: true
+  # Nombre d'exemples de doublons à afficher
+  top_duplicates_display: 10
+
+# Configuration Salesforce
+salesforce:
+  # Correction automatique des effectifs manquants
+  auto_fix_missing: true
+  
+  # Mapping des tailles d'entreprise vers effectifs par défaut
+  size_mapping:
+    MICRO:
+      default_employees: 5
+      description: "3 à 5 salariés"
+      confidence: "medium"
+    PME:
+      default_employees: 100
+      description: "100 à 199 salariés"
+      confidence: "medium"
+    ETI:
+      default_employees: 1000
+      description: "1000 à 1999 salariés"
+      confidence: "medium"
+    GE:
+      default_employees: 10000
+      description: "10000 salariés et plus"
+      confidence: "low"
+  
+  # Niveaux de confiance selon la taille des tranches
+  confidence_levels:
+    # Tranches précises (1-50 employés)
+    high_threshold: 50
+    # Tranches moyennes (50-1000 employés)
+    medium_threshold: 1000
+    # Grandes tranches (>1000 employés) = confiance faible
+
+# Configuration des colonnes d'entrée par défaut
+default_columns:
+  # Nom de colonne par défaut pour les entreprises
+  company: "Organisation"
+  # Nom de colonne par défaut pour la taille
+  size: "Taille"
+
+# Configuration des fichiers de sortie
+output:
+  # Répertoire de sortie par défaut
+  directory: "output"
+  # Préfixe pour les fichiers générés
+  prefix: "enriched"
+  # Suffixe pour les fichiers corrigés
+  corrected_suffix: "_refactor"
+  # Encodage des fichiers CSV
+  encoding: "utf-8"
+
+# Configuration du logging
+logging:
+  # Niveau de logging (DEBUG, INFO, WARNING, ERROR)
+  level: "INFO"
+  # Format des logs
+  format: "%(levelname)s - %(message)s"
+  # Afficher la progression tous les N éléments
+  progress_frequency: 10
+
+# Configuration mode démo
+demo:
+  # Limite par défaut pour le mode démo
+  default_limit: 50
+  # Préfixe pour les fichiers démo
+  prefix: "demo"
