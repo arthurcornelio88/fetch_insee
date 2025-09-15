@@ -295,10 +295,10 @@ def main():
     
     # Charger le dataset
     try:
-        df_companies = pd.read_csv('data/face_raw_full.csv')
+        df_companies = pd.read_csv('data/companies_input.csv')
         print(f"📄 Dataset chargé: {len(df_companies)} entreprises")
     except FileNotFoundError:
-        print("❌ Fichier data/face_raw_full.csv non trouvé")
+        print("❌ Fichier data/companies_input.csv non trouvé")
         return
     
     if mode == "demo":

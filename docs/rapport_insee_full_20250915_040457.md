@@ -14,18 +14,6 @@
 | **Lignes dupliquées** | 959 |
 | **Économie possible** | 959 requêtes évitées |
 
-### 🔢 TOP 10 Doublons
-1. **Colas** : 11 fois
-2. **EDF** : 9 fois
-3. **Devoteam** : 9 fois
-4. **Oddo & Cie** : 8 fois
-5. **ORANGE** : 8 fois
-6. **Niji** : 8 fois
-7. **Groupe Polylogis** : 8 fois
-8. **Infopro Digital** : 8 fois
-9. **Talan** : 8 fois
-10. **Arkema** : 7 fois
-
 ## 🚀 Performance d'Exécution
 
 | Métrique | Valeur |

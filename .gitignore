@@ -1,3 +1,17 @@
+# Environment variables
+.env
+
+# Data files with real company data - KEEP PRIVATE
+data/face_raw*.csv
+data/*_raw_*.csv  
+data/full_*.csv
+data/*salesforce*.csv
+
+# Output files with real company data
+output/*
+!output/.gitkeep
+!output/README.md
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
