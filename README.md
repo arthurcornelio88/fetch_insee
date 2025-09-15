@@ -26,8 +26,8 @@
 
 ```bash
 # Cloner le repository
-git clone https://github.com/arthurcornelio88/fetch_insee.git
-cd fetch_insee
+git clone git@github.com:arthurcornelio88/insee_data_processor.git
+cd insee_data_processor
 
 # Installer les dépendances
 uv sync
@@ -156,7 +156,7 @@ Global Industries,456789123,GLOBAL INDUSTRIES,PME,50 à 99 salariés,2018-11-08,
 ## 🛠️ Structure du projet
 
 ```
-fetch_insee/
+insee_data_processor/
 ├── src/
 │   ├── insee_client.py      # Client API avec cache et rate limiting
 │   ├── data_processor.py    # Logique de traitement principal
