@@ -60,10 +60,57 @@ class SalesforceExporter:
         # Correction automatique des effectifs manquants
         df_salesforce = self._fix_missing_effectifs(df_salesforce)
         
+        # Réorganisation des colonnes dans l'ordre optimal
+        df_salesforce = self._reorder_columns(df_salesforce)
+        
         # Statistiques finales
         self._log_salesforce_stats(df_salesforce)
-        
+
         return df_salesforce
+    
+    def _reorder_columns(self, df: pd.DataFrame) -> pd.DataFrame:
+        """Réorganise les colonnes dans un ordre logique et lisible"""
+        
+        # Ordre souhaité : infos de base, statuts, effectifs, données INSEE détaillées
+        ordered_columns = [
+            # Informations de base
+            'Organisation_Original',
+            'Taille_Original', 
+            'Categorie_Entreprise_INSEE',
+            'Statut_Recherche',
+            
+            # Statuts de révision
+            'Statut_Revision',
+            'Notes_Revision',
+            
+            # Effectifs (du plus général au plus spécifique)
+            'Effectifs_Description',
+            'Effectifs_Numeric',
+            'Effectifs_Salesforce',
+            
+            # Identifiants INSEE
+            'SIREN',
+            'SIRET',
+            'Confiance_Donnee',
+            
+            # Données INSEE détaillées
+            'Denomination_INSEE',
+            'Date_Creation',
+            'Activite_Principale',
+            'Etat_Administratif',
+            'Etablissement_Siege',
+            'Nombre_Etablissements',
+            'tranche_effectifs_unite_legale'
+        ]
+        
+        # Garder seulement les colonnes qui existent
+        available_columns = [col for col in ordered_columns if col in df.columns]
+        
+        # Ajouter les colonnes manquantes à la fin (au cas où)
+        remaining_columns = [col for col in df.columns if col not in available_columns]
+        final_column_order = available_columns + remaining_columns
+        
+        return df[final_column_order]
     
     def _convert_effectifs_to_salesforce(self, row: pd.Series) -> float:
         """Convertit les tranches d'effectifs en valeurs numériques"""
@@ -76,18 +123,19 @@ class SalesforceExporter:
         if row.get('Statut_Recherche') == 'Non trouvé':
             return 'none'
         
-        if pd.isna(row.get('Effectifs_Numeric')):
-            return 'low'
+        # Si trouvé dans l'API INSEE → confiance élevée
+        if row.get('Statut_Recherche') == 'Trouvé':
+            # Données directes de l'API INSEE = haute confiance
+            if not pd.isna(row.get('Effectifs_Numeric')):
+                return 'high'
+            else:
+                return 'medium'  # Trouvé mais effectifs manquants
         
-        effectifs = row.get('Effectifs_Numeric', 0)
-        
-        # Confiance basée sur la précision de la tranche
-        if effectifs <= 50:
-            return 'high'  # Tranches petites = plus précises
-        elif effectifs <= 1000:
-            return 'medium'
+        # Si pas trouvé mais effectifs estimés
+        if not pd.isna(row.get('Effectifs_Numeric')):
+            return 'medium'  # Estimation cohérente
         else:
-            return 'low'  # Grandes tranches = moins précises
+            return 'low'  # Pas de données fiables
     
     def _determine_revision_status(self, row: pd.Series) -> str:
         """Détermine le statut de révision intelligent"""
@@ -178,7 +226,8 @@ class SalesforceExporter:
         """Corrige les effectifs manquants selon la taille d'entreprise"""
         logger.info(f"\n🔧 Correction automatique des effectifs manquants...")
         
-        missing_mask = df['Effectifs_Description'] == 'Non spécifié'
+        # Identifier les lignes où Effectifs_Numeric est manquant (vraiment manquant)
+        missing_mask = df['Effectifs_Numeric'].isna()
         missing_count = missing_mask.sum()
         
         logger.info(f"🔍 Effectifs manquants: {missing_count} ({missing_count/len(df)*100:.1f}%)")
@@ -198,36 +247,37 @@ class SalesforceExporter:
         
         for idx, row in df_copy[missing_mask].iterrows():
             taille = row['Taille_Original']
-            effectifs_num, effectifs_desc, confiance = self._get_default_effectifs_by_taille(taille)
+            # Utiliser les moyennes configurées pour Effectifs_Salesforce SEULEMENT
+            effectifs_num, confiance = self._get_mean_effectifs_by_taille(taille)
             
             if effectifs_num is not None:
-                # Mettre à jour les colonnes
+                # Mettre à jour SEULEMENT Effectifs_Salesforce et confiance
+                # NE PAS toucher Effectifs_Description (garde None = tranche officielle manquante)
                 df_copy.at[idx, 'Effectifs_Salesforce'] = effectifs_num
-                df_copy.at[idx, 'Effectifs_Description'] = effectifs_desc
                 df_copy.at[idx, 'Confiance_Donnee'] = confiance
-                df_copy.at[idx, 'Notes_Revision'] = f"📊 Effectifs estimés par script selon Taille_Original ({taille})"
                 
                 corrections += 1
         
         logger.info(f"✅ CORRECTIONS APPLIQUÉES: {corrections}")
-        still_missing = (df_copy['Effectifs_Description'] == 'Non spécifié').sum()
+        still_missing = df_copy['Effectifs_Salesforce'].isna().sum()
         logger.info(f"   Effectifs encore manquants: {still_missing}")
         
         return df_copy
     
-    def _get_default_effectifs_by_taille(self, taille: str) -> Tuple[Optional[int], str, str]:
+    def _get_mean_effectifs_by_taille(self, taille: str) -> Tuple[Optional[int], str]:
         """
-        Retourne les effectifs par défaut selon la taille d'entreprise
-        Returns: (effectifs_numerique, effectifs_description, confiance)
+        Retourne les effectifs moyens du config selon la taille d'entreprise
+        Returns: (effectifs_numerique_moyen, confiance)
         """
+        # Moyennes configurées dans config.yaml
         mapping = {
-            'MICRO': (5, '3 à 5 salariés', 'medium'),      # Milieu de gamme MICRO
-            'PME': (100, '100 à 199 salariés', 'medium'),   # Milieu de gamme PME  
-            'ETI': (1000, '1000 à 1999 salariés', 'medium'), # Milieu de gamme ETI
-            'GE': (10000, '10000 salariés et plus', 'low')   # Estimation GE
+            'MICRO': (10, 'medium'),     # Milieu 0-19
+            'PME': (135, 'medium'),      # Milieu 20-249 
+            'ETI': (2625, 'medium'),     # Milieu 250-4999
+            'GE': (10000, 'low')         # Estimation 5000+
         }
         
-        return mapping.get(taille, (None, 'Non spécifié', 'low'))
+        return mapping.get(taille, (None, 'low'))
     
     def _log_salesforce_stats(self, df: pd.DataFrame):
         """Affiche les statistiques du fichier Salesforce généré"""
