@@ -105,7 +105,7 @@ Toutes les optimisations existantes sont préservées :
 
 ```bash
 INFO - 🎉 Traitement terminé avec succès!
-INFO - 📄 Résultat: output/demo_5_face_raw_full_enriched.csv
+INFO - 📄 Résultat: output/demo_5_companies_enriched.csv
 INFO - 📊 STATISTIQUES FINALES:
 INFO -    🔗 Appels API: 2
 INFO -    💾 Cache hits: 0  

@@ -1,239 +1,474 @@
-# INSEE Data Processor
+# INSEE Data Processor 🏢# INSEE Data Processor
 
-Un module Python professionnel pour enrichir des données d'entreprises avec l'API INSEE Sirene.
 
-## 🎯 Fonctionnalités
+
+**Module professionnel pour enrichir des données d'entreprises avec l'API INSEE Sirene**Un module Python professionnel pour enrichir des données d'entreprises avec l'API INSEE Sirene.
+
+
+
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)## 🎯 Fonctionnalités
+
+[![uv](https://img.shields.io/badge/uv-compatible-green.svg)](https://github.com/astral-sh/uv)
 
 - **Enrichissement automatique** : Récupère SIREN, effectifs, catégories d'entreprise depuis l'API Sirene
-- **Optimisation des doublons** : Cache intelligent pour éviter les requêtes redondantes  
+
+## 🎯 Fonctionnalités- **Optimisation des doublons** : Cache intelligent pour éviter les requêtes redondantes  
+
 - **Respect du rate limiting** : Gestion automatique des limites API (30 req/min)
-- **Format Salesforce** : Export optimisé avec statuts de révision intelligents
-- **Correction automatique** : Estimation des effectifs manquants selon la taille d'entreprise
-- **Interface flexible** : Support de noms de colonnes personnalisés
-- **Production ready** : Gestion d'erreurs robuste et logging détaillé
 
-## 🚀 Installation
+- 🔍 **Recherche automatique** dans la base Sirene INSEE- **Format Salesforce** : Export optimisé avec statuts de révision intelligents
 
-### Prérequis
+- 📊 **Enrichissement** avec effectifs, SIREN, catégories d'entreprise- **Correction automatique** : Estimation des effectifs manquants selon la taille d'entreprise
 
-- Python 3.9+
+- 🚀 **Export Salesforce** avec statuts de révision intelligents- **Interface flexible** : Support de noms de colonnes personnalisés
+
+- ⚡ **Cache intelligent** pour éviter les doublons (30-50% d'économie)- **Production ready** : Gestion d'erreurs robuste et logging détaillé
+
+- 🛡️ **Rate limiting** respecté (30 requêtes/minute max)
+
+- 🔧 **Correction automatique** des effectifs manquants## 🚀 Installation
+
+- 📝 **Interface flexible** : Support de noms de colonnes personnalisés
+
+- 🧪 **Mode démo** pour tester avant traitement complet### Prérequis
+
+
+
+## 🚀 Installation rapide- Python 3.9+
+
 - Clé API INSEE Sirene ([Obtenir ici](https://api.insee.fr/catalogue/))
 
-### Installation avec uv (recommandé)
-
 ```bash
+
+# 1. Cloner le repository### Installation avec uv (recommandé)
+
+git clone [votre-repository]
+
+cd insee-data-processor```bash
+
 # Cloner le repository
-git clone https://github.com/votre-username/insee-data-processor.git
-cd insee-data-processor
 
-# Installer les dépendances
-uv sync
+# 2. Installation des dépendancesgit clone https://github.com/votre-username/insee-data-processor.git
 
-# Configurer la clé API
+uv synccd insee-data-processor
+
+
+
+# 3. Configuration API# Installer les dépendances
+
+cp .env.example .envuv sync
+
+# Éditer .env avec votre clé API INSEE
+
+```# Configurer la clé API
+
 cp .env.example .env
-# Éditer .env et ajouter votre SIRENE_API_KEY
+
+## 🔑 Configuration API INSEE# Éditer .env et ajouter votre SIRENE_API_KEY
+
 ```
 
-### Installation alternative avec pip
+1. **Obtenir une clé API** : https://api.insee.fr/catalogue/
+
+2. **Créer le fichier .env** :### Installation alternative avec pip
 
 ```bash
-git clone https://github.com/votre-username/insee-data-processor.git
-cd insee-data-processor
-pip install -e .
 
-# Configuration
+SIRENE_API_KEY=votre_cle_api_insee_ici```bash
+
+```git clone https://github.com/votre-username/insee-data-processor.git
+
+cd insee-data-processor
+
+## 📖 Utilisationpip install -e .
+
+
+
+### Interface en ligne de commande# Configuration
+
 cp .env.example .env
-# Éditer .env et ajouter votre SIRENE_API_KEY
-```
+
+```bash# Éditer .env et ajouter votre SIRENE_API_KEY
+
+# Traitement basique```
+
+python scripts/process_companies.py data/companies.csv --company-col "Company Name"
 
 ## 📋 Configuration
 
-### 1. Clé API INSEE
+# Avec colonne taille d'entreprise
 
-Créez un fichier `.env` avec votre clé API :
+python scripts/process_companies.py data/companies.csv \### 1. Clé API INSEE
 
-```bash
-SIRENE_API_KEY=votre_cle_api_insee_ici
-```
+  --company-col "Organisation" \
+
+  --size-col "Taille Entreprise"Créez un fichier `.env` avec votre clé API :
+
+
+
+# Mode démo (tester avec 50 entreprises)```bash
+
+python scripts/process_companies.py data/companies.csv \SIRENE_API_KEY=votre_cle_api_insee_ici
+
+  --company-col "Company Name" \```
+
+  --demo 50
 
 ### 2. Format du fichier d'entrée
 
-Votre fichier CSV doit contenir au minimum :
-- **Une colonne avec les noms d'entreprises** (nom flexible)
+# Aide complète
+
+python scripts/process_companies.py --helpVotre fichier CSV doit contenir au minimum :
+
+```- **Une colonne avec les noms d'entreprises** (nom flexible)
+
 - **Une colonne avec la taille d'entreprise** (optionnel, mais recommandé)
-
-Exemple :
-```csv
-Company Name,Size,Other Data
-RENAULT,GE,Data1
-SNCF,GE,Data2
-Boulangerie Martin,MICRO,Data3
-```
-
-Les tailles supportées : `MICRO`, `PME`, `ETI`, `GE`
-
-## 🎮 Utilisation
-
-### Interface en ligne de commande
-
-```bash
-# Traitement basique
-python scripts/process_companies.py data/companies.csv --company-col "Company Name"
-
-# Avec colonne taille
-python scripts/process_companies.py data/companies.csv --company-col "Company Name" --size-col "Size"
-
-# Mode démo (50 entreprises)
-python scripts/process_companies.py data/companies.csv --company-col "Company Name" --demo 50
-
-# Sortie personnalisée
-python scripts/process_companies.py data/companies.csv --company-col "Company Name" --output results/enriched.csv
-```
 
 ### Utilisation programmatique
 
-```python
-from src.insee_client import INSEEClient
-from src.data_processor import DataProcessor
-from src.salesforce_export import SalesforceExporter
-import pandas as pd
+Exemple :
 
-# Charger vos données
-df = pd.read_csv('companies.csv')
+```python```csv
 
-# Initialiser les composants
-client = INSEEClient()
-processor = DataProcessor(client)
-exporter = SalesforceExporter()
+from src.insee_client import INSEEClientCompany Name,Size,Other Data
 
-# Pipeline complet
-df_enriched = processor.process_companies(df, 'Company Name', 'Size')
-df_salesforce = exporter.transform_for_salesforce(df_enriched)
+from src.data_processor import DataProcessorRENAULT,GE,Data1
 
-# Sauvegarder
-df_salesforce.to_csv('output/enriched.csv', index=False)
+from src.salesforce_export import SalesforceExporterSNCF,GE,Data2
+
+import pandas as pdBoulangerie Martin,MICRO,Data3
+
 ```
 
-## 📊 Structure des données de sortie
+# Initialisation
 
-Le fichier de sortie contient :
+client = INSEEClient()Les tailles supportées : `MICRO`, `PME`, `ETI`, `GE`
+
+processor = DataProcessor(client)
+
+exporter = SalesforceExporter()## 🎮 Utilisation
+
+
+
+# Traitement### Interface en ligne de commande
+
+df = pd.read_csv('companies.csv')
+
+df_enriched = processor.process_companies(df, 'Company Name', 'Size')```bash
+
+df_salesforce = exporter.transform_for_salesforce(df_enriched)# Traitement basique
+
+python scripts/process_companies.py data/companies.csv --company-col "Company Name"
+
+# Sauvegarde
+
+df_salesforce.to_csv('output/enriched_companies.csv', index=False)# Avec colonne taille
+
+```python scripts/process_companies.py data/companies.csv --company-col "Company Name" --size-col "Size"
+
+
+
+## 📁 Structure du projet# Mode démo (50 entreprises)
+
+python scripts/process_companies.py data/companies.csv --company-col "Company Name" --demo 50
+
+```
+
+insee-data-processor/# Sortie personnalisée
+
+├── src/                              # 📦 MODULE PRINCIPALpython scripts/process_companies.py data/companies.csv --company-col "Company Name" --output results/enriched.csv
+
+│   ├── __init__.py                   # Module INSEE Data Processor```
+
+│   ├── insee_client.py               # Client API INSEE optimisé
+
+│   ├── data_processor.py             # Processeur avec cache intelligent### Utilisation programmatique
+
+│   └── salesforce_export.py          # Export + corrections automatiques
+
+├── scripts/                          # 🚀 SCRIPTS UTILISATEUR```python
+
+│   └── process_companies.py          # Interface CLI flexiblefrom src.insee_client import INSEEClient
+
+├── config/                           # ⚙️ CONFIGURATIONfrom src.data_processor import DataProcessor
+
+│   └── config.yaml                   # Configuration personnalisablefrom src.salesforce_export import SalesforceExporter
+
+├── data/                             # 📊 DONNÉESimport pandas as pd
+
+│   ├── companies_input.csv           # Vos données d'entrée
+
+│   └── [généré automatiquement]      # Fichiers de sortie# Charger vos données
+
+├── output/                           # 📤 RÉSULTATSdf = pd.read_csv('companies.csv')
+
+│   └── [fichiers enrichis]           # Générés par le script
+
+├── .env.example                      # Template configuration API# Initialiser les composants
+
+├── pyproject.toml                    # Configuration uv/pipclient = INSEEClient()
+
+└── README.md                         # Cette documentationprocessor = DataProcessor(client)
+
+```exporter = SalesforceExporter()
+
+
+
+## 📊 Format des données# Pipeline complet
+
+df_enriched = processor.process_companies(df, 'Company Name', 'Size')
+
+### Fichier d'entréedf_salesforce = exporter.transform_for_salesforce(df_enriched)
+
+
+
+Votre fichier CSV doit contenir au minimum une colonne avec les noms d'entreprises :# Sauvegarder
+
+df_salesforce.to_csv('output/enriched.csv', index=False)
+
+```csv```
+
+Company Name,Size Category,Other Data
+
+ACME Corporation,PME,Additional info## 📊 Structure des données de sortie
+
+Tech Solutions SAS,ETI,More data
+
+Global Industries,GE,...Le fichier de sortie contient :
+
+```
 
 | Colonne | Description |
-|---------|-------------|
+
+### Fichier de sortie|---------|-------------|
+
 | `Organisation_Original` | Nom d'entreprise original |
-| `Taille_Original` | Taille d'entreprise originale |
+
+Le système génère un fichier enrichi compatible Salesforce :| `Taille_Original` | Taille d'entreprise originale |
+
 | `SIREN` | Numéro SIREN (9 chiffres) |
-| `SIRET` | Numéro SIRET (14 chiffres) |
-| `Denomination_INSEE` | Dénomination officielle INSEE |
-| `Effectifs_Salesforce` | Effectifs au format numérique |
-| `Effectifs_Description` | Description de la tranche d'effectifs |
-| `Confiance_Donnee` | Niveau de confiance (`high`, `medium`, `low`) |
-| `Statut_Revision` | Statut pour révision (`CONFIRMED`, `TO_REVIEW`, `CONFLICT_TO_REVIEW`) |
+
+```csv| `SIRET` | Numéro SIRET (14 chiffres) |
+
+Organisation_Original,Taille_Original,SIREN,Effectifs_Salesforce,Statut_Revision,...| `Denomination_INSEE` | Dénomination officielle INSEE |
+
+ACME Corporation,PME,123456789,150,CONFIRMED,...| `Effectifs_Salesforce` | Effectifs au format numérique |
+
+Tech Solutions SAS,ETI,987654321,1500,TO_REVIEW,...| `Effectifs_Description` | Description de la tranche d'effectifs |
+
+Global Industries,GE,456789123,10000,CONFIRMED,...| `Confiance_Donnee` | Niveau de confiance (`high`, `medium`, `low`) |
+
+```| `Statut_Revision` | Statut pour révision (`CONFIRMED`, `TO_REVIEW`, `CONFLICT_TO_REVIEW`) |
+
 | `Notes_Revision` | Notes explicatives |
 
+## 🎛️ Configuration avancée
+
 ## 🔧 Configuration avancée
+
+### Personnalisation via config.yaml
 
 ### Fichier config/config.yaml
 
 ```yaml
-api:
-  delay_between_requests: 4.0  # Respecter limite 30req/min
-  max_results: 5
+
+# config/config.yaml```yaml
+
+api:api:
+
+  delay_between_requests: 4.0  # Délai entre requêtes  delay_between_requests: 4.0  # Respecter limite 30req/min
+
+    max_results: 5
 
 salesforce:
-  auto_fix_missing: true
-  size_mapping:
-    MICRO:
-      default_employees: 5
-      description: "3 à 5 salariés"
-```
 
-### Variables d'environnement
+  auto_fix_missing: true       # Correction automatiquesalesforce:
 
-```bash
+    auto_fix_missing: true
+
+  size_mapping:                # Mapping tailles → effectifs  size_mapping:
+
+    MICRO:     MICRO:
+
+      default_employees: 5      default_employees: 5
+
+    PME:      description: "3 à 5 salariés"
+
+      default_employees: 100```
+
+    # ...
+
+```### Variables d'environnement
+
+
+
+### Variables d'environnement```bash
+
 SIRENE_API_KEY=votre_cle     # Obligatoire
-INSEE_API_DELAY=4.0          # Optionnel
-LOG_LEVEL=INFO               # Optionnel
-```
 
-## 📈 Optimisations et performances
+```bashINSEE_API_DELAY=4.0          # Optionnel
+
+# .envLOG_LEVEL=INFO               # Optionnel
+
+SIRENE_API_KEY=votre_cle_api```
+
+INSEE_API_DELAY=4.0           # Délai personnalisé
+
+LOG_LEVEL=INFO                # Niveau de logging## 📈 Optimisations et performances
+
+```
 
 ### Cache intelligent
-- **Doublons automatiquement détectés** : Évite les requêtes redondantes
+
+## 📈 Optimisations intégrées- **Doublons automatiquement détectés** : Évite les requêtes redondantes
+
 - **Économie typique** : 30-50% de requêtes API en moins
-- **Temps gagné** : ~3 secondes par doublon évité
 
-### Gestion du rate limiting
-- **Délai automatique** : 4 secondes entre requêtes (respecte 30 req/min)
+### Cache intelligent- **Temps gagné** : ~3 secondes par doublon évité
+
+- **Détection automatique** des doublons dans vos données
+
+- **Économie de 30-50%** des requêtes API### Gestion du rate limiting
+
+- **Statistiques détaillées** sur l'efficacité- **Délai automatique** : 4 secondes entre requêtes (respecte 30 req/min)
+
 - **Gestion d'erreurs** : Retry automatique en cas de HTTP 429
-- **Variations intelligentes** : Teste plusieurs formes du nom d'entreprise
 
-### Exemple de performance
+### Rate limiting respecté- **Variations intelligentes** : Teste plusieurs formes du nom d'entreprise
+
+- **4 secondes** entre chaque requête (configurable)
+
+- **Gestion automatique** des erreurs 429### Exemple de performance
+
+- **Retry intelligent** avec backoff
 
 ```
-📊 STATISTIQUES FINALES:
-   🔗 Appels API: 1,250
-   💾 Cache hits: 750
-   ✅ Taux de réussite: 85.2%
-   ⚡ Efficacité cache: 37.5%
+
+### Statuts de révision intelligents📊 STATISTIQUES FINALES:
+
+- **CONFIRMED** : Données fiables et cohérentes   🔗 Appels API: 1,250
+
+- **TO_REVIEW** : À vérifier manuellement     💾 Cache hits: 750
+
+- **CONFLICT_TO_REVIEW** : Incohérence détectée   ✅ Taux de réussite: 85.2%
+
+- **NOT_FOUND** : Entreprise non trouvée   ⚡ Efficacité cache: 37.5%
+
    🕰️ Temps total: 1h 23min
-```
 
-## 🎯 Cas d'usage
+### Correction automatique```
+
+- **Effectifs manquants** remplacés par estimation selon taille
+
+- **Notes explicatives** pour traçabilité## 🎯 Cas d'usage
+
+- **Mapping intelligent** MICRO→5, PME→100, ETI→1000, GE→10000
 
 ### 1. Enrichissement Salesforce
-```bash
+
+## 🧪 Mode démo et tests```bash
+
 python scripts/process_companies.py salesforce_export.csv \
-  --company-col "Account Name" \
-  --size-col "Company Size" \
-  --output salesforce_enriched.csv
+
+```bash  --company-col "Account Name" \
+
+# Test rapide avec 10 entreprises  --size-col "Company Size" \
+
+python scripts/process_companies.py data/companies.csv --company-col "Name" --demo 10  --output salesforce_enriched.csv
+
 ```
 
-### 2. Due diligence financière
+# Test avec logging détaillé
+
+python scripts/process_companies.py data/companies.csv --company-col "Name" --verbose### 2. Due diligence financière
+
 ```bash
-python scripts/process_companies.py portfolio.csv \
-  --company-col "Portfolio Company" \
-  --demo 100  # Test sur échantillon
-```
 
-### 3. Analyse sectorielle
+# Validation des colonnespython scripts/process_companies.py portfolio.csv \
+
+python scripts/process_companies.py data/companies.csv --company-col "WrongColumn"  --company-col "Portfolio Company" \
+
+# → Erreur avec liste des colonnes disponibles  --demo 100  # Test sur échantillon
+
+``````
+
+
+
+## 📊 Exemple de résultats### 3. Analyse sectorielle
+
 ```bash
-python scripts/process_companies.py sector_analysis.csv \
-  --company-col "Entreprise" \
-  --delay 2.0  # Plus rapide (risqué)
+
+```python scripts/process_companies.py sector_analysis.csv \
+
+INFO - 🎉 Traitement terminé avec succès!  --company-col "Entreprise" \
+
+INFO - 📄 Résultat: output/companies_enriched.csv  --delay 2.0  # Plus rapide (risqué)
+
+INFO - 📊 STATISTIQUES FINALES:```
+
+INFO -    🔗 Appels API: 150
+
+INFO -    💾 Cache hits: 85## 🐛 Dépannage
+
+INFO -    ✅ Taux de réussite: 95.2%
+
+INFO -    ⚡ Efficacité cache: 36.2%### Erreurs courantes
+
 ```
-
-## 🐛 Dépannage
-
-### Erreurs courantes
 
 **❌ Variable SIRENE_API_KEY non définie**
-```bash
+
+## ❓ FAQ```bash
+
 # Solution : créer le fichier .env
-cp .env.example .env
-# Puis éditer .env avec votre clé
+
+**Q: Quelle clé API utiliser ?**  cp .env.example .env
+
+**R**: Clé API INSEE Sirene disponible sur https://api.insee.fr/catalogue/# Puis éditer .env avec votre clé
+
 ```
 
-**❌ Colonne 'Company' non trouvée**
+**Q: Combien de temps pour 1000 entreprises ?**  
+
+**R**: ~1h avec cache optimisé (4s entre requêtes pour respecter les limites)**❌ Colonne 'Company' non trouvée**
+
 ```bash
-# Solution : vérifier le nom exact de la colonne
-python scripts/process_companies.py data.csv --company-col "Company Name"
+
+**Q: Mes colonnes ont des noms différents ?**  # Solution : vérifier le nom exact de la colonne
+
+**R**: Pas de problème ! Utilisez `--company-col "Votre Colonne"` et `--size-col "Votre Taille"`python scripts/process_companies.py data.csv --company-col "Company Name"
+
 ```
 
-**❌ Rate limit exceeded (HTTP 429)**
+**Q: Et si je n'ai pas de colonne taille ?**  
+
+**R**: Optionnel ! Le système fonctionne sans, omettez simplement `--size-col`**❌ Rate limit exceeded (HTTP 429)**
+
 ```bash
-# Solution : augmenter le délai
-python scripts/process_companies.py data.csv --company-col "Company" --delay 6.0
+
+**Q: Comment voir le détail des opérations ?**  # Solution : augmenter le délai
+
+**R**: Ajoutez `--verbose` pour les logs détailléspython scripts/process_companies.py data.csv --company-col "Company" --delay 6.0
+
 ```
+
+## 🤝 Support
 
 ### Logs détaillés
 
-```bash
-python scripts/process_companies.py data.csv --company-col "Company" --verbose
+- 📖 **Documentation** : Ce README + `--help` sur chaque script
+
+- 🐛 **Issues** : Créez une issue sur le repository```bash
+
+- 💡 **Suggestions** : Pull requests bienvenuespython scripts/process_companies.py data.csv --company-col "Company" --verbose
+
 ```
+
+---
 
 ## 📊 Algorithme de matching
 
+**Module professionnel et scalable pour l'enrichissement de données d'entreprises** 🚀
 ### Stratégies de recherche
 1. **Nom exact** : Recherche avec le nom original
 2. **Majuscules** : Conversion en MAJUSCULES si différent
