@@ -226,7 +226,8 @@ class SalesforceExporter:
         """Corrige les effectifs manquants selon la taille d'entreprise"""
         logger.info(f"\n🔧 Correction automatique des effectifs manquants...")
         
-        missing_mask = df['Effectifs_Description'] == 'Non spécifié'
+        # Identifier les lignes où Effectifs_Numeric est manquant (vraiment manquant)
+        missing_mask = df['Effectifs_Numeric'].isna()
         missing_count = missing_mask.sum()
         
         logger.info(f"🔍 Effectifs manquants: {missing_count} ({missing_count/len(df)*100:.1f}%)")
@@ -246,36 +247,37 @@ class SalesforceExporter:
         
         for idx, row in df_copy[missing_mask].iterrows():
             taille = row['Taille_Original']
-            effectifs_num, effectifs_desc, confiance = self._get_default_effectifs_by_taille(taille)
+            # Utiliser les moyennes configurées pour Effectifs_Salesforce SEULEMENT
+            effectifs_num, confiance = self._get_mean_effectifs_by_taille(taille)
             
             if effectifs_num is not None:
-                # Mettre à jour les colonnes
+                # Mettre à jour SEULEMENT Effectifs_Salesforce et confiance
+                # NE PAS toucher Effectifs_Description (garde None = tranche officielle manquante)
                 df_copy.at[idx, 'Effectifs_Salesforce'] = effectifs_num
-                df_copy.at[idx, 'Effectifs_Description'] = effectifs_desc
                 df_copy.at[idx, 'Confiance_Donnee'] = confiance
-                df_copy.at[idx, 'Notes_Revision'] = f"📊 Effectifs estimés par script selon Taille_Original ({taille})"
                 
                 corrections += 1
         
         logger.info(f"✅ CORRECTIONS APPLIQUÉES: {corrections}")
-        still_missing = (df_copy['Effectifs_Description'] == 'Non spécifié').sum()
+        still_missing = df_copy['Effectifs_Salesforce'].isna().sum()
         logger.info(f"   Effectifs encore manquants: {still_missing}")
         
         return df_copy
     
-    def _get_default_effectifs_by_taille(self, taille: str) -> Tuple[Optional[int], str, str]:
+    def _get_mean_effectifs_by_taille(self, taille: str) -> Tuple[Optional[int], str]:
         """
-        Retourne les effectifs par défaut selon la taille d'entreprise
-        Returns: (effectifs_numerique, effectifs_description, confiance)
+        Retourne les effectifs moyens du config selon la taille d'entreprise
+        Returns: (effectifs_numerique_moyen, confiance)
         """
+        # Moyennes configurées dans config.yaml
         mapping = {
-            'MICRO': (5, '3 à 5 salariés', 'medium'),      # Milieu de gamme MICRO
-            'PME': (100, '100 à 199 salariés', 'medium'),   # Milieu de gamme PME  
-            'ETI': (1000, '1000 à 1999 salariés', 'medium'), # Milieu de gamme ETI
-            'GE': (10000, '10000 salariés et plus', 'low')   # Estimation GE
+            'MICRO': (10, 'medium'),     # Milieu 0-19
+            'PME': (135, 'medium'),      # Milieu 20-249 
+            'ETI': (2625, 'medium'),     # Milieu 250-4999
+            'GE': (10000, 'low')         # Estimation 5000+
         }
         
-        return mapping.get(taille, (None, 'Non spécifié', 'low'))
+        return mapping.get(taille, (None, 'low'))
     
     def _log_salesforce_stats(self, df: pd.DataFrame):
         """Affiche les statistiques du fichier Salesforce généré"""

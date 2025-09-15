@@ -189,7 +189,7 @@ class INSEEClient:
         if not code_tranche:
             return {
                 'tranche_effectifs_unite_legale': None,
-                'Effectifs_Description': 'Non spécifié',
+                'Effectifs_Description': None,  # Pas d'invention ! Seulement les tranches officielles
                 'Effectifs_Numeric': None
             }
         

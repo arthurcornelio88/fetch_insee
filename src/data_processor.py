@@ -87,7 +87,7 @@ class DataProcessor:
                         'Etablissement_Siege': None,
                         'Nombre_Etablissements': None,
                         'tranche_effectifs_unite_legale': None,
-                        'Effectifs_Description': 'Non spécifié',
+                        'Effectifs_Description': None,  # Pas d'invention ! Seulement tranches officielles INSEE
                         'Effectifs_Numeric': None
                     }
                     logger.warning(f"   ❌ Non trouvé")
