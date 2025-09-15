@@ -14,9 +14,9 @@ class SalesforceExporter:
     def __init__(self):
         """Initialise l'exporteur"""
         self.size_mapping = {
-            'MICRO': {'range': (0, 10), 'default': 5},
-            'PME': {'range': (10, 250), 'default': 100}, 
-            'ETI': {'range': (250, 5000), 'default': 1000},
+            'MICRO': {'range': (0, 19), 'default': 10},
+            'PME': {'range': (20, 249), 'default': 135}, 
+            'ETI': {'range': (250, 4999), 'default': 2625},
             'GE': {'range': (5000, float('inf')), 'default': 10000}
         }
     
@@ -118,23 +118,36 @@ class SalesforceExporter:
         return 'TO_REVIEW'
     
     def _check_size_coherence(self, row: pd.Series) -> str:
-        """Vérifie la cohérence entre taille originale et effectifs INSEE"""
+        """Vérifie la cohérence entre taille originale et classification INSEE officielle"""
         taille_original = row.get('Taille_Original', '')
-        effectifs = row.get('Effectifs_Numeric')
+        categorie_insee = row.get('Categorie_Entreprise_INSEE', '')
         
-        if not effectifs or pd.isna(effectifs):
+        if not categorie_insee or pd.isna(categorie_insee):
             return 'unknown'
         
-        # Mapping des tailles vers ranges d'effectifs attendus
-        if taille_original == 'MICRO' and effectifs <= 10:
+        # Normalisation des tailles pour comparaison
+        taille_original_clean = str(taille_original).strip().upper()
+        categorie_insee_clean = str(categorie_insee).strip().upper()
+        
+        # Correspondance directe
+        if taille_original_clean == categorie_insee_clean:
             return 'coherent'
-        elif taille_original == 'PME' and 10 < effectifs <= 250:
+        
+        # Cas spéciaux acceptables
+        special_cases = {
+            'GRANDE ENTREPRISE': 'GE',
+            'PETITE ENTREPRISE': 'PME',
+            'PETITES ET MOYENNES ENTREPRISES': 'PME',
+            'ENTREPRISE DE TAILLE INTERMÉDIAIRE': 'ETI',
+            'MICRO ENTREPRISE': 'MICRO'
+        }
+        
+        taille_normalized = special_cases.get(taille_original_clean, taille_original_clean)
+        if taille_normalized == categorie_insee_clean:
             return 'coherent'
-        elif taille_original == 'ETI' and 250 < effectifs <= 5000:
-            return 'coherent'
-        elif taille_original == 'GE' and effectifs > 5000:
-            return 'coherent'
-        elif taille_original in ['Non spécifié', '', 'UNKNOWN']:
+        
+        # Si différent, c'est incohérent (mais pas forcément une erreur)
+        if taille_original_clean in ['NON SPÉCIFIÉ', '', 'UNKNOWN', 'N/A']:
             return 'unknown'
         else:
             return 'incoherent'
@@ -143,15 +156,21 @@ class SalesforceExporter:
         """Génère des notes explicatives pour la révision"""
         statut = row.get('Statut_Revision', '')
         effectifs_desc = row.get('Effectifs_Description', '')
+        taille_original = row.get('Taille_Original', '')
+        categorie_insee = row.get('Categorie_Entreprise_INSEE', '')
+        effectifs = row.get('Effectifs_Numeric', 0)
         
         if statut == 'CONFIRMED':
-            return f"✅ Données cohérentes - {effectifs_desc}"
+            return f"✅ Classification cohérente: {taille_original} = {categorie_insee} INSEE"
         elif statut == 'CONFLICT_TO_REVIEW':
-            return f"⚠️ Incohérence détectée - Vérifier {effectifs_desc}"
+            return f"⚠️ Classification divergente: {taille_original} déclaré vs {categorie_insee} INSEE (effectifs: {effectifs})"
         elif statut == 'TO_REVIEW':
-            return f"📊 Tranche large - estimation approximative"
+            if effectifs:
+                return f"📊 Faible confiance ou grande tranche - {effectifs_desc} - Vérifier"
+            else:
+                return f"📊 Données estimées selon {taille_original} - Vérifier"
         elif statut == 'NOT_FOUND':
-            return f"❌ Entreprise non trouvée dans Sirene"
+            return f"❌ Entreprise non trouvée dans base Sirene"
         else:
             return f"📋 À réviser - {effectifs_desc}"
     

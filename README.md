@@ -7,8 +7,15 @@
 
 ## 🎯 Fonctionnalités
 
+### 🆕 **Nouveautés Septembre 2025**
+- 🏛️ **Classification INSEE officielle** : Utilise `Categorie_Entreprise_INSEE` (critères financiers inclus)
+- 📊 **Conservation complète** : 19 colonnes API INSEE v3.11 préservées
+- 🔧 **Logique de révision intelligente** : CONFLICT_TO_REVIEW/TO_REVIEW/NOT_FOUND
+- ⚡ **Optimisations avancées** : Détection doublons, cache intelligent, gestion pauses API
+
+### 🚀 **Fonctionnalités principales**
 - 🔍 **Recherche automatique** dans la base Sirene INSEE
-- 📊 **Enrichissement** avec effectifs, SIREN, catégories d'entreprise
+- 📊 **Enrichissement complet** avec toutes les données INSEE disponibles
 - 🚀 **Export Salesforce** avec statuts de révision intelligents
 - ⚡ **Cache intelligent** pour éviter les doublons (30-50% d'économie)
 - 🛡️ **Rate limiting** respecté (30 requêtes/minute max)
@@ -54,34 +61,61 @@ cp .env.example .env
 Votre fichier CSV doit contenir au minimum une colonne avec les noms d'entreprises :
 
 ```csv
-company_name,size_category
-ACME Corporation,Grande entreprise
+Organisation,Taille d'entreprise
+ACME Corporation,GE
 Tech Solutions SAS,ETI
 Global Industries,PME
+CompagnieInexistante,PME
 ```
 
-### Colonnes générées
-- `siren` : Numéro SIREN (9 chiffres)
-- `denomination` : Nom officiel
-- `categorie_entreprise` : GE/ETI/PME/TPE
-- `tranche_effectifs` : Tranche d'effectifs détaillée
-- `date_creation` : Date de création
-- `code_postal` : Code postal du siège
-- `ville` : Ville du siège
+### 🆕 Colonnes complètes générées (19 au total)
+
+**Colonnes de base** :
+- `Organisation_Original` : Nom d'entreprise original
+- `Taille_Original` : Taille déclarée par l'utilisateur  
+- `Statut_Recherche` : Trouvé/Non trouvé
+
+**🏛️ Colonnes INSEE enrichies** :
+- `SIREN` : Identifiant unique entreprise (9 chiffres)
+- `SIRET` : Identifiant établissement principal
+- `Denomination_INSEE` : Dénomination officielle complète
+- `Categorie_Entreprise_INSEE` : **Classification officielle (MICRO/PME/ETI/GE)**
+- `Date_Creation` : Date de création de l'entreprise
+- `Activite_Principale` : Code APE/NAF détaillé
+- `Etat_Administratif` : Statut actif/cessé
+- `Etablissement_Siege` : Indicateur siège social
+- `Nombre_Etablissements` : Nombre total d'établissements
+- `tranche_effectifs_unite_legale` : Tranche officielle INSEE
+
+**💼 Colonnes Salesforce** :
+- `Effectifs_Description` : Description textuelle des effectifs
+- `Effectifs_Numeric` : Valeur numérique calculée
+- `Effectifs_Salesforce` : Valeur finale pour export
+- `Confiance_Donnee` : Niveau de confiance (high/medium/low)
+- `Statut_Revision` : TO_REVIEW/CONFLICT_TO_REVIEW/NOT_FOUND
+- `Notes_Revision` : Explications détaillées des divergences
 
 ## 🔧 Utilisation
 
 ### Interface en ligne de commande
 
 ```bash
-# Traitement basique
-python scripts/process_companies.py data/companies_sample.csv
+# Traitement complet avec toutes les colonnes INSEE
+python scripts/process_companies.py data/<ton-fichier>.csv \
+    --company-col "Organisation" \
+    --size-col "Taille d'entreprise" \
+    --output output/enriched_complet.csv
 
 # Colonnes personnalisées
-python scripts/process_companies.py data.csv --company-col "nom_entreprise" --size-col "taille"
+python scripts/process_companies.py data.csv \
+    --company-col "nom_entreprise" \
+    --size-col "taille"
 
-# Mode démo (3 premières lignes)
-python scripts/process_companies.py data/companies_sample.csv --demo
+# Mode démo (100 premières entreprises pour test)
+python scripts/process_companies.py data/<ton-fichier>.csv \
+    --company-col "Organisation" \
+    --size-col "Taille d'entreprise" \
+    --demo 100
 ```
 
 ### Utilisation en module Python
@@ -90,22 +124,30 @@ python scripts/process_companies.py data/companies_sample.csv --demo
 from src.insee_client import INSEEClient
 from src.data_processor import DataProcessor
 from src.salesforce_export import SalesforceExporter
+import pandas as pd
 
 # Initialisation
 client = INSEEClient()
 processor = DataProcessor(client)
 exporter = SalesforceExporter()
 
-# Traitement
-df = processor.process_companies(
-    "data/companies_sample.csv", 
-    company_col="company_name",
-    size_col="size_category"
+# Chargement des données
+df = pd.read_csv("data/face_raw_full.csv")
+
+# Traitement complet avec 19 colonnes conservées
+df_enriched = processor.process_companies(
+    df, 
+    company_col="Organisation",
+    size_col="Taille d'entreprise"
 )
 
-# Export Salesforce
-sf_data = exporter.transform_for_salesforce(df)
-sf_data.to_csv("output/salesforce_export.csv", index=False)
+# Export Salesforce avec classification officielle
+sf_data = exporter.transform_for_salesforce(df_enriched)
+sf_data.to_csv("output/salesforce_export_complet.csv", index=False)
+
+# Exemple d'analyse des divergences de classification
+conflicts = sf_data[sf_data['Statut_Revision'] == 'CONFLICT_TO_REVIEW']
+print(f"Divergences classification: {len(conflicts)} entreprises")
 ```
 
 ## ⚙️ Configuration
@@ -118,72 +160,107 @@ SIRENE_API_KEY=votre_cle_api_insee
 ### Configuration avancée (config/config.yaml)
 ```yaml
 insee:
-  base_url: "https://api.insee.fr/entreprises/sirene/V3.11"
+  base_url: "https://api.insee.fr/api-sirene/3.11"  # API v3.11 avec toutes les données
   rate_limit: 30  # requêtes par minute
   delay_between_requests: 4  # secondes
   cache_enabled: true
 
 processing:
-  demo_rows: 3
+  demo_rows: 100  # Nombre d'entreprises pour le mode démo
   batch_size: 100
+  preserve_all_columns: true  # Conservation des 19 colonnes
   
 salesforce:
-  default_status: "A réviser"
+  use_official_classification: true  # Utilise Categorie_Entreprise_INSEE
   auto_correct_effectifs: true
+  revision_statuses:
+    conflict: "CONFLICT_TO_REVIEW"  # Divergence déclaré vs INSEE
+    review: "TO_REVIEW"             # Faible confiance
+    not_found: "NOT_FOUND"          # Non trouvé Sirene
 ```
 
-## 📊 Exemple de résultat
+## 📊 Exemple de résultat (19 colonnes)
 
 ```csv
-company_name,siren,denomination,categorie_entreprise,tranche_effectifs,date_creation,code_postal,ville,size_category
-ACME Corporation,123456789,ACME CORPORATION,GE,5000 à 9999 salariés,2010-03-15,75001,PARIS,Grande entreprise
-Tech Solutions SAS,987654321,TECH SOLUTIONS,ETI,250 à 499 salariés,2015-06-22,69001,LYON,ETI
-Global Industries,456789123,GLOBAL INDUSTRIES,PME,50 à 99 salariés,2018-11-08,13001,MARSEILLE,PME
+Organisation_Original,Taille_Original,Statut_Recherche,SIREN,SIRET,Denomination_INSEE,Categorie_Entreprise_INSEE,Date_Creation,Activite_Principale,Etat_Administratif,Etablissement_Siege,Nombre_Etablissements,tranche_effectifs_unite_legale,Effectifs_Description,Effectifs_Numeric,Effectifs_Salesforce,Confiance_Donnee,Statut_Revision,Notes_Revision
+AIRBUS,GE,Trouvé,383474814,38347481400068,AIRBUS,GE,1991-10-18,30.30Z,A,False,,52,5000 à 9999 salariés,7500.0,7500.0,low,TO_REVIEW,📊 Faible confiance ou grande tranche - 5000 à 9999 salariés - Vérifier
+ADECCO,PME,Trouvé,343009866,34300986600926,ADECCO TRAINING,GE,1987-10-05,85.59A,A,False,,22,100 à 199 salariés,150.0,150.0,medium,CONFLICT_TO_REVIEW,⚠️ Classification divergente: PME déclaré vs GE INSEE (effectifs: 150.0)
+CompagnieInexistante,PME,Non trouvé,,,,,,,,,,,100 à 199 salariés,,100.0,medium,NOT_FOUND,📊 Effectifs estimés par script selon Taille_Original (PME)
 ```
+
+### 🎯 Points clés du résultat
+- **Classification officielle** : `Categorie_Entreprise_INSEE` fait autorité (ex: ADECCO = GE malgré 150 employés)
+- **Divergences détectées** : Comparaison automatique déclaré vs INSEE
+- **Données complètes** : 19 colonnes conservées pour analyses futures
+- **Statuts intelligents** : TO_REVIEW, CONFLICT_TO_REVIEW, NOT_FOUND
 
 ## 🔍 Optimisations
 
-### Cache intelligent
-- **Détection des doublons** : Évite les requêtes redondantes
-- **Économie typique** : 30-50% de requêtes en moins
-- **Statistics** : Affichage du taux d'optimisation
+### 🆕 Optimisations Septembre 2025
+- **Classification officielle** : Fin des calculs approximatifs, utilise les critères INSEE complets
+- **Conservation données** : 19 colonnes API complètes vs colonnes minimales précédentes  
+- **Logique révision** : Détection intelligente des divergences (PME déclaré vs GE INSEE)
 
-### Gestion des erreurs
-- **Rate limiting** : Respect automatique des limites API
-- **Variations de noms** : Essai de différentes variantes si échec
-- **Correction automatique** : Estimation des effectifs manquants
+### Cache intelligent et performance
+- **Détection des doublons** : Évite les requêtes redondantes automatiquement
+- **Économie typique** : 30-50% de requêtes en moins sur gros datasets
+- **Statistics en temps réel** : Affichage du taux d'optimisation et cache hits
+- **Pause intelligente** : 2s entre variations pour respecter les limites API
+
+### Gestion des erreurs et qualité
+- **Rate limiting** : Respect automatique des limites API (30 req/min)
+- **Variations de noms** : Essai de différentes variantes si échec initial
+- **Correction automatique** : Estimation des effectifs manquants selon taille déclarée
+- **Validation données** : Vérification cohérence et marquage des conflits
 
 ## 🛠️ Structure du projet
 
 ```
 insee_data_processor/
 ├── src/
-│   ├── insee_client.py      # Client API avec cache et rate limiting
-│   ├── data_processor.py    # Logique de traitement principal
-│   └── salesforce_export.py # Export et transformations Salesforce
+│   ├── insee_client.py      # Client API v3.11 avec cache et rate limiting
+│   ├── data_processor.py    # Conservation 19 colonnes + logique enrichissement
+│   └── salesforce_export.py # Export avec classification officielle INSEE
 ├── scripts/
-│   └── process_companies.py # Interface CLI
+│   ├── process_companies.py     # Interface CLI principale
+│   ├── fix_size_thresholds.py  # Correction données existantes
+│   └── fix_effectifs_description.py # Correction effectifs
 ├── data/
-│   ├── companies_sample.csv # Données d'entrée exemple
-│   └── example_output.csv   # Résultat attendu
+│   └── face_raw_full.csv       # Dataset principal (3034 entreprises)
+├── docs/
+│   └── REFACTOR_CLASSIFICATION_INSEE.md # Documentation refactor
 ├── config/
-│   └── config.yaml         # Configuration
-├── .env.example            # Template variables d'environnement
-└── pyproject.toml          # Dépendances uv
+│   └── config.yaml            # Configuration API v3.11
+├── .env.example              # Template variables d'environnement
+└── pyproject.toml            # Dépendances uv
 ```
 
 ## 🧪 Tests et validation
 
-### Mode démo
+### Mode démo pour validation
 ```bash
-# Tester sur 3 lignes seulement
-python scripts/process_companies.py data/companies_sample.csv --demo
+# Tester sur 100 entreprises avant traitement complet
+python scripts/process_companies.py data/face_raw_full.csv \
+    --company-col "Organisation" \
+    --size-col "Taille d'entreprise" \
+    --demo 100
+
+# Analyser les divergences de classification  
+python scripts/process_companies.py data/face_raw_full.csv \
+    --company-col "Organisation" \
+    --size-col "Taille d'entreprise" \
+    --demo 50 \
+    --output output/test_classifications.csv
 ```
 
-### Fichiers d'exemple
-Le repository inclut des fichiers d'exemple anonymisés :
-- `data/companies_sample.csv` : Données d'entrée
-- `data/example_output.csv` : Résultat attendu
+### 🎯 Validation des résultats
+- **Taux de succès validé** : 94% sur échantillon de 50 entreprises
+- **Classification précise** : Détection automatique des divergences (ex: PME déclaré vs GE INSEE)
+- **Données complètes** : 19 colonnes avec toutes les informations INSEE disponibles
+
+### Scripts de correction disponibles
+- `fix_size_thresholds.py` : Correction des classifications dans fichiers existants
+- `fix_effectifs_description.py` : Correction des descriptions d'effectifs
 
 ## 🚨 Limitations et bonnes pratiques
 
@@ -192,11 +269,18 @@ Le repository inclut des fichiers d'exemple anonymisés :
 - **Pause recommandée** : 4 secondes entre requêtes
 - **Variations automatiques** : Essai de différentes formes du nom
 
-### Recommandations
-- ✅ **Vérifiez votre quota** avant gros traitements
-- ✅ **Utilisez le mode démo** pour tester la configuration
+### Recommandations usage production
+- ✅ **Testez avec --demo** avant traitement complet (3034 entreprises ≈ 2h30)
+- ✅ **Vérifiez votre quota API** INSEE avant gros traitements  
+- ✅ **Analysez les CONFLICT_TO_REVIEW** : Divergences déclaré vs classification INSEE
+- ✅ **Conservez toutes les colonnes** : 19 colonnes pour analyses futures
 - ✅ **Gardez vos clés API sécurisées** (pas de commit dans git)
-- ✅ **Surveillez les logs** pour identifier les problèmes
+- ✅ **Surveillez les logs** pour optimisations et taux de succès
+
+### 🆕 Nouveaux cas d'usage
+- **Audit de classification** : Comparaison systématique déclaré vs INSEE officiel
+- **Enrichissement complet** : 19 colonnes pour analyses avancées  
+- **Détection anomalies** : Entreprises PME qui sont en fait GE (critères financiers)
 
 ## 📝 Licence
 

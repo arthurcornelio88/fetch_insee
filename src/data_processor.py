@@ -72,6 +72,7 @@ class DataProcessor:
                     }
                     logger.info(f"   ✅ Trouvé: {insee_data.get('Denomination_INSEE', 'N/A')}")
                 else:
+                    # Créer une structure complète pour les non trouvés
                     result_data = {
                         'Organisation_Original': company_name,
                         'Taille_Original': size_original,
@@ -79,6 +80,13 @@ class DataProcessor:
                         'SIREN': None,
                         'SIRET': None,
                         'Denomination_INSEE': None,
+                        'Categorie_Entreprise_INSEE': None,
+                        'Date_Creation': None,
+                        'Activite_Principale': None,
+                        'Etat_Administratif': None,
+                        'Etablissement_Siege': None,
+                        'Nombre_Etablissements': None,
+                        'tranche_effectifs_unite_legale': None,
                         'Effectifs_Description': 'Non spécifié',
                         'Effectifs_Numeric': None
                     }
