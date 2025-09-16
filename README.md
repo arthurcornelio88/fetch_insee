@@ -223,17 +223,77 @@ insee_data_processor/
 │   └── salesforce_export.py # Export avec classification officielle INSEE
 ├── scripts/
 │   ├── process_companies.py     # Interface CLI principale
+│   ├── generate_report.py      # 🆕 Générateur rapports professionnels
 │   ├── fix_size_thresholds.py  # Correction données existantes
 │   └── fix_effectifs_description.py # Correction effectifs
 ├── data/
 │   └── face_raw_full.csv       # Dataset principal (3034 entreprises)
 ├── docs/
-│   └── REFACTOR_CLASSIFICATION_INSEE.md # Documentation refactor
+│   ├── REFACTOR_CLASSIFICATION_INSEE.md # Documentation refactor
+│   ├── RAPPORT_TRAITEMENT_INSEE_*.md    # 🆕 Rapports générés automatiquement
+│   └── RAPPORT_OPTIMISATIONS_*.md       # 🆕 Rapports performance
 ├── config/
 │   └── config.yaml            # Configuration API v3.11
 ├── .env.example              # Template variables d'environnement
 └── pyproject.toml            # Dépendances uv
 ```
+
+## 📊 Génération de rapports automatiques
+
+### 🆕 Script de rapport professionnel
+
+Après traitement des données, générez automatiquement des rapports complets avec statistiques et analyses :
+
+```bash
+# Génération de rapport standard
+python scripts/generate_report.py output/face_raw_full_enriched.csv
+
+# Rapport dans un répertoire spécifique
+python scripts/generate_report.py output/results.csv --output-dir reports/
+
+# Rapport sur données de démo
+python scripts/generate_report.py output/demo_100_enriched.csv --verbose
+```
+
+### 📋 Contenu des rapports générés
+
+**📊 Rapport principal** : `RAPPORT_TRAITEMENT_INSEE_YYYYMMDD_HHMM.md`
+- **Résumé exécutif** : Taux de succès, optimisations, performance
+- **Statistiques détaillées** : Statuts révision, niveaux confiance, effectifs
+- **Analyse divergences** : Exemples anonymisés de conflits classification
+- **Analyse sectorielle** : Top secteurs NAF, répartition temporelle
+- **Recommandations** : Actions prioritaires par statut (CONFLICT/TO_REVIEW/NOT_FOUND)
+- **ROI économique** : Valeur vs solutions payantes ($15K-50K/an évités)
+
+**⚡ Rapport optimisations** : `RAPPORT_OPTIMISATIONS_YYYYMMDD_HHMM.md`
+- **Détection doublons** : Top entreprises dupliquées, économies requêtes
+- **Métriques performance** : Temps gagné, qualité données, précision
+- **Comparaisons avant/après** : Amélioration logique classification
+
+### 📈 Exemple d'utilisation complète
+
+```bash
+# 1. Traitement complet des données
+python scripts/process_companies.py data/face_raw_full.csv \
+    --company-col "Organisation" \
+    --size-col "Taille d'entreprise" \
+    --output output/face_raw_full_enriched.csv
+
+# 2. Génération automatique des rapports
+python scripts/generate_report.py output/face_raw_full_enriched.csv
+
+# 3. Résultats dans docs/
+# - RAPPORT_TRAITEMENT_INSEE_20250916_1430.md
+# - RAPPORT_OPTIMISATIONS_20250916_1430.md
+```
+
+### 🎯 Avantages des rapports
+
+- **Anonymisation automatique** : Données entreprises protégées
+- **Analyse business** : Métriques ROI et valeur ajoutée  
+- **Documentation complète** : Traçabilité et validation pour audits
+- **Exemples concrets** : Conflits classification avec explications
+- **Recommandations actionnables** : Priorités par statut révision
 
 ## 🧪 Tests et validation
 
